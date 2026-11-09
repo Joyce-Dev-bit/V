@@ -1,5 +1,14 @@
 # React + Vite
 
+## Connexion et inscription de démonstration
+
+Les pages `/connexion` et `/inscription` présentent un parcours par numéro de
+téléphone et mot de passe fictif. Elles ne créent aucun compte ni session,
+ne vérifient pas les identifiants, n'envoient aucun SMS et ne transmettent ni
+n'enregistrent les données. Ne saisissez pas de vrai mot de passe. Le fil et
+son profil restent des exemples ; une authentification réelle nécessitera un
+serveur et un mécanisme de vérification adaptés.
+
 ## Messagerie de démonstration
 
 Le panneau « Messagerie » regroupe les conversations par contact. Il peut aussi
@@ -14,13 +23,15 @@ pas envoyés à un serveur et les conversations disparaissent au rechargement.
 
 - `src/App.jsx` est le point d'entrée de l'interface et assemble la page d'accueil.
 - `src/pages/HomePage.jsx` compose la page, ses fenêtres et la messagerie.
+- `src/pages/AuthPage.jsx` et `src/pages/AuthPage.css` contiennent les pages et styles d'authentification simulée.
 - `src/components/` contient les parties de la page, les publications et les fenêtres.
 - `src/hooks/useHomePage.js` centralise l'état et les actions de la page.
 - `src/data/demoData.js` rassemble les exemples de produits, publications et vendeurs.
 - `src/MessagingWidget.jsx` gère les conversations locales ; son style est séparé
   dans `src/MessagingWidget.css`. Les autres styles restent dans `src/App.css`.
 
-L'application n'a qu'une seule page pour l'instant : aucun routeur n'est nécessaire.
+La navigation entre le fil et les pages de démonstration utilise l'historique du
+navigateur, sans dépendance de routage.
 
 This template provides a minimal setup to get React working in Vite with HMR and some Oxlint rules.
 

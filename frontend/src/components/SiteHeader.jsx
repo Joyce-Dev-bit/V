@@ -1,7 +1,7 @@
 import { Avatar, Icon } from './common.jsx'
 import { currentUser } from '../data/demoData.js'
 
-export default function SiteHeader({ handleNavigation, searchRef, query, setQuery }) {
+export default function SiteHeader({ handleNavigation, searchRef, query, setQuery, navigate }) {
   return (
     <header className="top-header">
       <div className="top-header-main">
@@ -22,6 +22,7 @@ export default function SiteHeader({ handleNavigation, searchRef, query, setQuer
           <kbd>⌘ K</kbd>
         </label>
         <div className="header-account">
+          <a className="header-login" href="/connexion" onClick={(event) => navigate(event, '/connexion')}>Connexion</a>
           <button className="header-publish" type="button" onClick={() => handleNavigation('create')}><Icon name="plus" size={17} /> Publier / Vendre</button>
           <button className="header-profile" type="button" aria-label="Ouvrir mon profil" onClick={() => handleNavigation('profile')}>
             <Avatar src={currentUser.avatar} initials={currentUser.initials} size="small" />
