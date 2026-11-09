@@ -1,5 +1,27 @@
 # React + Vite
 
+## Messagerie de démonstration
+
+Le panneau « Messagerie » regroupe les conversations par contact. Il peut aussi
+être ouvert depuis la fiche d'un produit pour retrouver le vendeur et le contexte
+de l'article. La recherche filtre les contacts et les brouillons restent propres
+à chaque conversation.
+
+Il s'agit uniquement d'une démonstration côté navigateur : les messages ne sont
+pas envoyés à un serveur et les conversations disparaissent au rechargement.
+
+## Organisation du frontend
+
+- `src/App.jsx` est le point d'entrée de l'interface et assemble la page d'accueil.
+- `src/pages/HomePage.jsx` compose la page, ses fenêtres et la messagerie.
+- `src/components/` contient les parties de la page, les publications et les fenêtres.
+- `src/hooks/useHomePage.js` centralise l'état et les actions de la page.
+- `src/data/demoData.js` rassemble les exemples de produits, publications et vendeurs.
+- `src/MessagingWidget.jsx` gère les conversations locales ; son style est séparé
+  dans `src/MessagingWidget.css`. Les autres styles restent dans `src/App.css`.
+
+L'application n'a qu'une seule page pour l'instant : aucun routeur n'est nécessaire.
+
 This template provides a minimal setup to get React working in Vite with HMR and some Oxlint rules.
 
 Currently, two official plugins are available:
