@@ -47,7 +47,43 @@ export default function VideoInjection({ title = 'Vidéos backend', embedded = f
   const [pendingCommentLikes, setPendingCommentLikes] = useState({})
   const [pendingCommentDeletes, setPendingCommentDeletes] = useState({})
   const [isMuted, setIsMuted] = useState(true)
+  const [viewerVideoId, setViewerVideoId] = useState(null)
   const videosRef = useRef(new Map())
+  const feedRef = useRef(null)
+
+  function closeViewer() {
+    setViewerVideoId(null)
+    setCommentPanelVideoId(null)
+    setActiveVideoId(null)
+  }
+
+  useEffect(() => {
+    if (viewerVideoId === null) return undefined
+
+    const previousOverflow = document.body.style.overflow
+    document.body.style.overflow = 'hidden'
+    document.getElementById(`video-${viewerVideoId}`)?.scrollIntoView({ block: 'start' })
+    return () => {
+      document.body.style.overflow = previousOverflow
+    }
+  }, [viewerVideoId])
+
+  useEffect(() => {
+    if (viewerVideoId === null || commentPanelVideoId) return undefined
+
+    function handleKey(event) {
+      if (event.key === 'Escape') closeViewer()
+      const step = event.key === 'ArrowDown' ? 1 : event.key === 'ArrowUp' ? -1 : 0
+      if (step) {
+        event.preventDefault()
+        const feed = feedRef.current
+        feed?.scrollBy({ top: step * feed.clientHeight, behavior: 'smooth' })
+      }
+    }
+
+    document.addEventListener('keydown', handleKey)
+    return () => document.removeEventListener('keydown', handleKey)
+  }, [viewerVideoId, commentPanelVideoId])
 
   const apiBases = useMemo(() => {
     if (!apiBase) return API_CANDIDATES
@@ -150,13 +186,13 @@ export default function VideoInjection({ title = 'Vidéos backend', embedded = f
     })
 
     return () => observer.disconnect()
-  }, [items, mode])
+  }, [items, mode, viewerVideoId])
 
   useEffect(() => {
     videosRef.current.forEach((video) => {
       video.muted = isMuted
     })
-  }, [isMuted])
+  }, [isMuted, viewerVideoId])
 
   function updateCommentsTree(nodes, commentId, mutate) {
     if (!Array.isArray(nodes)) return nodes
@@ -462,7 +498,34 @@ export default function VideoInjection({ title = 'Vidéos backend', embedded = f
       {!loading && !error && items.length === 0 && <p>Aucune vidéo trouvée.</p>}
 
       {mode === 'reels' ? (
-        <div className="video-reels-feed" aria-label="Flux vertical de vidéos">
+        <>
+        {!loading && items.length > 0 && (
+          <div className="video-reels-grid" aria-label="Choisir une vidéo">
+            {items.map((v) => (
+              <button
+                key={v.id}
+                type="button"
+                className="video-thumb"
+                aria-label={`Ouvrir la vidéo : ${v.description || 'Sans description'}`}
+                onClick={() => setViewerVideoId(v.id)}
+              >
+                <video src={v.video_url} poster={v.poster_url || ''} muted playsInline preload="metadata" tabIndex={-1} />
+                <span className="video-thumb-play"><Icon name="play" size={18} /></span>
+                <span className="video-thumb-meta">
+                  <strong>{v.author?.display_name || 'Profil V'}</strong>
+                  <small>{v.description || 'Sans description'}</small>
+                  <em><Icon name="heart" size={12} /> {v.likes_count || 0}</em>
+                </span>
+              </button>
+            ))}
+          </div>
+        )}
+        {viewerVideoId !== null && (
+        <div className="reels-viewer" role="dialog" aria-modal="true" aria-label="Lecteur vidéo plein écran">
+          <button type="button" className="reels-viewer-close" onClick={closeViewer} aria-label="Fermer le lecteur vidéo">
+            <Icon name="close" size={22} />
+          </button>
+        <div className="video-reels-feed" aria-label="Flux vertical de vidéos" ref={feedRef}>
           {items.map((v) => (
             <article key={v.id} className="video-reel-card" data-video-id={v.id} id={`video-${v.id}`}>
               <video
@@ -539,6 +602,9 @@ export default function VideoInjection({ title = 'Vidéos backend', embedded = f
             </article>
           ))}
         </div>
+        </div>
+        )}
+        </>
       ) : (
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(220px,1fr))', gap: 12 }}>
           {items.map((v) => (
@@ -559,7 +625,14 @@ export default function VideoInjection({ title = 'Vidéos backend', embedded = f
       )}
 
       {commentPanelVideoId && (
-        <div className="video-comments-sheet" role="dialog" aria-modal="true" aria-label="Commentaires">
+        <div
+          className="video-comments-sheet"
+          role="dialog"
+          aria-modal="true"
+          aria-label="Commentaires"
+          onMouseDown={(event) => event.target === event.currentTarget && setCommentPanelVideoId(null)}
+          onKeyDown={(event) => event.key === 'Escape' && setCommentPanelVideoId(null)}
+        >
           <div className="video-comments-panel">
             <div className="video-comments-head">
               <strong>Commentaires</strong>

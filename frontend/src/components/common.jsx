@@ -17,6 +17,8 @@ export function Icon({ name, size = 20, filled = false }) {
     volume: <><path d="M4 10v4h4l5 4V6l-5 4H4Z" /><path d="M17 9a4 4 0 0 1 0 6" /><path d="M19.5 6.5a7.5 7.5 0 0 1 0 11" /></>,
     volumeOff: <><path d="M4 10v4h4l5 4V6l-5 4H4Z" /><path d="m17 9 4 6" /><path d="m21 9-4 6" /></>,
     location: <><path d="M20 10c0 5-8 11-8 11S4 15 4 10a8 8 0 1 1 16 0Z" /><circle cx="12" cy="10" r="2.5" /></>,
+    star: <path d="m12 3.5 2.6 5.3 5.9.9-4.3 4.1 1 5.8-5.2-2.8-5.2 2.8 1-5.8-4.3-4.1 5.9-.9L12 3.5Z" />,
+    chart: <><path d="M4 20V4" /><path d="M4 20h16" /><path d="M8 16v-4m4 4V8m4 8v-6" /></>,
     sparkles: <><path d="m12 3 1.7 5.3L19 10l-5.3 1.7L12 17l-1.7-5.3L5 10l5.3-1.7L12 3Z" /><path d="m19 14 .9 2.1L22 17l-2.1.9L19 20l-.9-2.1L16 17l2.1-.9L19 14ZM5 3l.7 1.6L7 5l-1.3.4L5 7l-.7-1.6L3 5l1.3-.4L5 3Z" /></>,
   }
 
@@ -26,7 +28,7 @@ export function Icon({ name, size = 20, filled = false }) {
       width={size}
       height={size}
       viewBox="0 0 24 24"
-      fill={filled && name === 'heart' ? 'currentColor' : 'none'}
+      fill={filled && (name === 'heart' || name === 'star') ? 'currentColor' : 'none'}
       stroke="currentColor"
       strokeWidth="1.75"
       strokeLinecap="round"
@@ -42,6 +44,19 @@ export function Avatar({ src, initials, size = 'normal', className = '' }) {
   return (
     <span className={`avatar avatar-${size} ${className}`}>
       {src ? <img src={src} alt="" /> : <span>{initials}</span>}
+    </span>
+  )
+}
+
+export function StarRating({ value, count, size = 14 }) {
+  const rounded = Math.round(value)
+  return (
+    <span className="star-rating" role="img" aria-label={`Note ${value.toFixed(1)} sur 5${count !== undefined ? `, ${count} avis` : ''}`}>
+      {[1, 2, 3, 4, 5].map((star) => (
+        <Icon key={star} name="star" size={size} filled={star <= rounded} />
+      ))}
+      <strong>{value.toFixed(1)}</strong>
+      {count !== undefined && <small>({count} avis)</small>}
     </span>
   )
 }

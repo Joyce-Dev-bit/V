@@ -21,6 +21,7 @@ export default function HomePage({ navigate, path }) {
         searchRef={searchRef}
         query={state.query}
         setQuery={state.setQuery}
+        onSearch={state.submitSearch}
         navigate={navigate}
         activePath={path}
       />
@@ -71,6 +72,8 @@ export default function HomePage({ navigate, path }) {
         selectedId={state.selectedContactId}
         onSelect={state.setSelectedContactId}
         productContexts={state.productContexts}
+        products={state.products}
+        onConfirmOrder={state.confirmOrder}
       />
       <HomeModals
         modal={state.modal}
@@ -93,6 +96,10 @@ export default function HomePage({ navigate, path }) {
         profileTab={state.profileTab}
         setProfileTab={state.setProfileTab}
         demoPurchases={state.demoPurchases}
+        orders={state.orders}
+        updateOrder={state.updateOrder}
+        submitRating={state.submitRating}
+        getSellerRating={state.getSellerRating}
         handleNavigation={state.handleNavigation}
       />
       <div className={`toast${state.toastMessage ? ' is-visible' : ''}`} role="status" aria-live="polite">

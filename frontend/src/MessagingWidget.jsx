@@ -10,6 +10,7 @@ function MessageIcon({ name, size = 20 }) {
     close: <path d="m6 6 12 12M18 6 6 18" />,
     send: <><path d="m3 4 18 8-18 8 3-8-3-8Z" /><path d="M6 12h15" /></>,
     bag: <><path d="M5 8h14l1 13H4L5 8Z" /><path d="M9 9V6a3 3 0 0 1 6 0v3" /></>,
+    check: <path d="m5 12 4 4L19 6" />,
   }
 
   return (
@@ -27,15 +28,56 @@ function ContactAvatar({ contact }) {
   )
 }
 
-function MessagingWidget({ contacts, isOpen, onOpenChange, selectedId, onSelect, productContexts }) {
+function MessagingWidget({ contacts, isOpen, onOpenChange, selectedId, onSelect, productContexts, products = [], onConfirmOrder }) {
   const [query, setQuery] = useState('')
   const [conversations, setConversations] = useState({})
   const [drafts, setDrafts] = useState({})
+  const [orderForm, setOrderForm] = useState(null)
   const historyRef = useRef(null)
   const messageSequence = useRef(0)
   const selectedContact = contacts.find((contact) => contact.id === selectedId)
   const selectedMessages = conversations[selectedId] ?? []
   const draft = drafts[selectedId] ?? ''
+  const contactProducts = products.filter((product) => product.sellerId === selectedId)
+  const contextProduct = productContexts[selectedId]
+
+  function openOrderForm() {
+    const product = contactProducts.find((item) => item.id === contextProduct?.id) ?? contactProducts[0]
+    setOrderForm({ contactId: selectedId, productId: product?.id ?? '', price: product ? String(product.price) : '', error: '' })
+  }
+
+  function changeOrderProduct(productId) {
+    const product = contactProducts.find((item) => item.id === productId)
+    setOrderForm((current) => ({ ...current, productId, price: product ? String(product.price) : current.price, error: '' }))
+  }
+
+  function submitOrder(event) {
+    event.preventDefault()
+    const product = contactProducts.find((item) => item.id === orderForm.productId)
+    const price = Number(orderForm.price)
+    if (!product) {
+      setOrderForm((current) => ({ ...current, error: 'Choisissez le produit commandé.' }))
+      return
+    }
+    if (!Number.isInteger(price) || price <= 0) {
+      setOrderForm((current) => ({ ...current, error: 'Indiquez le prix final convenu (nombre entier supérieur à 0).' }))
+      return
+    }
+    onConfirmOrder?.(product, price)
+    messageSequence.current += 1
+    const message = {
+      sequence: messageSequence.current,
+      kind: 'order',
+      productName: product.name,
+      price,
+      time: new Intl.DateTimeFormat('fr-FR', { hour: '2-digit', minute: '2-digit' }).format(new Date()),
+    }
+    setConversations((current) => ({
+      ...current,
+      [selectedContact.id]: [...(current[selectedContact.id] ?? []), message],
+    }))
+    setOrderForm(null)
+  }
 
   const filteredContacts = useMemo(() => {
     const search = query.trim().toLocaleLowerCase('fr')
@@ -122,7 +164,7 @@ function MessagingWidget({ contacts, isOpen, onOpenChange, selectedId, onSelect,
                     <ContactAvatar contact={contact} />
                     <span className="messaging-contact-info">
                       <strong>{contact.name}</strong>
-                      <span>{latest ? `Vous : ${latest.text}` : contact.shopName}</span>
+                      <span>{latest ? (latest.kind === 'order' ? 'Commande confirmée' : `Vous : ${latest.text}`) : contact.shopName}</span>
                     </span>
                     {latest && <time className="messaging-contact-time">{latest.time}</time>}
                   </button>
@@ -133,7 +175,7 @@ function MessagingWidget({ contacts, isOpen, onOpenChange, selectedId, onSelect,
             </div>
           </section>
 
-          <section className="messaging-conversation" aria-label={selectedContact ? `Conversation avec ${selectedContact.name}` : 'Conversation'}>
+          <section className={`messaging-conversation${orderForm?.contactId === selectedId ? ' has-order-form' : ''}`} aria-label={selectedContact ? `Conversation avec ${selectedContact.name}` : 'Conversation'}>
             {selectedContact ? (
               <>
                 <header className="messaging-conversation-header">
@@ -146,19 +188,62 @@ function MessagingWidget({ contacts, isOpen, onOpenChange, selectedId, onSelect,
                     <MessageIcon name="close" size={17} />
                   </button>
                 </header>
-                {productContexts[selectedContact.id] && (
+                {contextProduct && (
                   <div className="messaging-product-context">
                     <MessageIcon name="bag" size={17} />
-                    <span>À propos de <strong>{productContexts[selectedContact.id]}</strong></span>
+                    <span>À propos de <strong>{contextProduct.name}</strong></span>
                   </div>
+                )}
+                <div className="messaging-order-bar">
+                  <button type="button" className="messaging-confirm-order" disabled={!contactProducts.length} onClick={openOrderForm}>
+                    <MessageIcon name="check" size={16} /> Confirmer la commande
+                  </button>
+                  <small>Indiquez le prix final après discussion.</small>
+                </div>
+                {orderForm?.contactId === selectedContact.id && (
+                  <form className="messaging-order-form" onSubmit={submitOrder}>
+                    <label className="form-field">
+                      <span>Produit</span>
+                      <select value={orderForm.productId} onChange={(event) => changeOrderProduct(event.target.value)}>
+                        {contactProducts.map((product) => <option key={product.id} value={product.id}>{product.name}</option>)}
+                      </select>
+                    </label>
+                    <label className="form-field">
+                      <span>Prix final convenu (Ar)</span>
+                      <input
+                        type="number"
+                        min="1"
+                        step="1"
+                        inputMode="numeric"
+                        value={orderForm.price}
+                        onChange={(event) => setOrderForm((current) => ({ ...current, price: event.target.value, error: '' }))}
+                        autoFocus
+                      />
+                    </label>
+                    {orderForm.error && <p className="form-error" role="alert">{orderForm.error}</p>}
+                    <p className="messaging-order-note">Démo : la commande est enregistrée sans paiement ni livraison.</p>
+                    <div className="messaging-order-actions">
+                      <button type="button" className="messaging-order-cancel" onClick={() => setOrderForm(null)}>Annuler</button>
+                      <button type="submit" className="button-primary">Confirmer la commande</button>
+                    </div>
+                  </form>
                 )}
                 <div className="messaging-history" ref={historyRef} aria-live="polite">
                   {selectedMessages.length ? (
                     selectedMessages.map((message) => (
-                      <div className="messaging-bubble-row" key={message.sequence}>
-                        <div className="messaging-bubble">{message.text}</div>
-                        <time>{message.time} · Démo</time>
-                      </div>
+                      message.kind === 'order' ? (
+                        <div className="messaging-order-card" key={message.sequence}>
+                          <strong><MessageIcon name="check" size={15} /> Commande confirmée</strong>
+                          <span>{message.productName}</span>
+                          <span>Prix final : <b>{new Intl.NumberFormat('fr-FR').format(message.price)} Ar</b></span>
+                          <time>{message.time} · En attente du vendeur · Démo</time>
+                        </div>
+                      ) : (
+                        <div className="messaging-bubble-row" key={message.sequence}>
+                          <div className="messaging-bubble">{message.text}</div>
+                          <time>{message.time} · Démo</time>
+                        </div>
+                      )
                     ))
                   ) : (
                     <div className="messaging-empty-conversation">

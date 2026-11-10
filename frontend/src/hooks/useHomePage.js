@@ -1,7 +1,9 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { currentUser, initialPosts, initialProducts } from '../data/demoData.js'
+import { createOrder, getSellerRating, rateOrder, updateOrderStatus, useOrders } from '../data/ordersStore.js'
 
 export default function useHomePage({ searchRef, feedRef }) {
+  const orders = useOrders()
   const [products, setProducts] = useState(initialProducts)
   const [posts, setPosts] = useState(initialPosts)
   const [query, setQuery] = useState('')
@@ -163,7 +165,7 @@ export default function useHomePage({ searchRef, feedRef }) {
     setModal(null)
     if (seller) {
       setSelectedContactId(seller.sellerId)
-      setProductContexts((current) => ({ ...current, [seller.sellerId]: seller.name }))
+      setProductContexts((current) => ({ ...current, [seller.sellerId]: seller }))
     }
     setMessagingOpen(true)
   }
@@ -277,9 +279,34 @@ export default function useHomePage({ searchRef, feedRef }) {
     setModal({ type: 'purchase', productId: product.id })
   }
 
+  function submitSearch() {
+    setFeedTab('for-you')
+    setActiveCategory('Tout')
+    searchRef.current?.blur()
+    window.setTimeout(() => feedRef.current?.scrollIntoView({ behavior: 'smooth' }), 0)
+  }
+
+  function confirmOrder(product, price) {
+    const order = createOrder({ product, price })
+    showToast('Commande confirmée (démo) : en attente du vendeur, aucun paiement effectué.')
+    return order
+  }
+
+  function updateOrder(orderId, status) {
+    updateOrderStatus(orderId, status)
+    showToast(status === 'completed' ? 'Commande marquée comme réalisée.' : 'Commande annulée.')
+  }
+
+  function submitRating(orderId, stars, comment) {
+    rateOrder(orderId, stars, comment)
+    showToast('Merci ! Votre note a été enregistrée.')
+  }
+
   function handleNavigation(destination) {
     setModal(null)
-    if (destination === 'home') {
+    if (destination === 'dashboard') {
+      setModal({ type: 'dashboard' })
+    } else if (destination === 'home') {
       setQuery('')
       setActiveCategory('Tout')
       setFeedTab('for-you')
@@ -312,6 +339,7 @@ export default function useHomePage({ searchRef, feedRef }) {
     productById, messageContacts, filteredPosts,
     showToast, focusSearch, toggleLike, toggleFollow, sharePost, addComment,
     openProduct, openMessages, updateDraftMedia, publishPost, startDemoPurchase,
-    handleNavigation,
+    handleNavigation, orders, submitSearch, confirmOrder, updateOrder, submitRating,
+    getSellerRating: (sellerId) => getSellerRating(sellerId, orders),
   }
 }

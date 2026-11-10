@@ -3,6 +3,8 @@ import HomePage from './pages/HomePage.jsx'
 import AuthPage from './pages/AuthPage.jsx'
 import VideosPage from './pages/VideosPage.jsx'
 import './App.css'
+import './orders.css'
+import './reels.css'
 import './pages/AuthPage.css'
 
 export default function App() {

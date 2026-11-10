@@ -1,7 +1,7 @@
 import { Avatar, Icon } from './common.jsx'
 import { currentUser } from '../data/demoData.js'
 
-export default function SiteHeader({ handleNavigation, searchRef, query, setQuery, navigate, activePath = '/' }) {
+export default function SiteHeader({ handleNavigation, searchRef, query, setQuery, onSearch, navigate, activePath = '/' }) {
   const isVideosPage = activePath === '/videos'
 
   return (
@@ -11,10 +11,19 @@ export default function SiteHeader({ handleNavigation, searchRef, query, setQuer
           <span className="v-mark">V</span>
           <span className="v-brand-copy"><strong>V</strong><small>LE FIL QUI FAIT VIVRE LE COMMERCE</small></span>
         </button>
-        <label className="global-search" role="search">
+        <form
+          className="global-search"
+          role="search"
+          onSubmit={(event) => {
+            if (activePath === '/videos') navigate(event, '/')
+            else event.preventDefault()
+            onSearch?.()
+          }}
+        >
           <Icon name="search" size={19} />
           <input
             ref={searchRef}
+            type="search"
             aria-label="Rechercher un produit ou un vendeur"
             placeholder="Rechercher un produit, un vendeur…"
             value={query}
@@ -22,7 +31,8 @@ export default function SiteHeader({ handleNavigation, searchRef, query, setQuer
           />
           {query && <button type="button" aria-label="Effacer la recherche" onClick={() => setQuery('')}><Icon name="close" size={16} /></button>}
           <kbd>⌘ K</kbd>
-        </label>
+          <button className="global-search-submit" type="submit"><Icon name="search" size={16} /><span>Rechercher</span></button>
+        </form>
         <div className="header-account">
           <a className="header-login" href="/connexion" onClick={(event) => navigate(event, '/connexion')}>Connexion</a>
           <button className="header-publish" type="button" onClick={() => handleNavigation('create')}><Icon name="plus" size={17} /> Publier / Vendre</button>
@@ -37,6 +47,7 @@ export default function SiteHeader({ handleNavigation, searchRef, query, setQuer
         <button type="button" onClick={() => handleNavigation('search')}><Icon name="search" size={18} /> Recherche</button>
         <button type="button" onClick={() => handleNavigation('create')}><Icon name="plus" size={18} /> Publier</button>
         <button type="button" onClick={() => handleNavigation('messages')}><Icon name="message" size={18} /> Messages</button>
+        <button type="button" onClick={() => handleNavigation('dashboard')}><Icon name="chart" size={18} /> Ventes</button>
         <button type="button" onClick={() => handleNavigation('profile')}><Icon name="user" size={18} /> Profil</button>
         <span className="nav-account-note">Achetez et vendez avec le même compte</span>
       </nav>

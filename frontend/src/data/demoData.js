@@ -197,3 +197,72 @@ export const suggestedSellers = [
 ]
 
 export const categories = ['Tout', 'Mode', 'Maison', 'Bien-être', 'Tech']
+
+export const sellerRatingSeeds = {
+  'tiana-voa': { average: 4.8, count: 34 },
+  'anja-kanto': { average: 4.6, count: 21 },
+  'madio-nature': { average: 4.9, count: 58 },
+  'mora-tech': { average: 4.3, count: 12 },
+  [currentUser.id]: { average: 0, count: 0 },
+}
+
+const daysAgo = (days) => new Date(Date.now() - days * 86400000).toISOString()
+
+export const initialOrders = [
+  {
+    id: 'cmd-demo-1',
+    productId: 'panier-mialy',
+    productName: 'Panier tressé du marché',
+    sellerId: currentUser.id,
+    sellerName: currentUser.name,
+    buyerId: 'lova',
+    buyerName: 'Lova A.',
+    price: 27000,
+    status: 'pending',
+    createdAt: daysAgo(1),
+    completedAt: null,
+    rating: null,
+  },
+  {
+    id: 'cmd-demo-2',
+    productId: 'panier-mialy',
+    productName: 'Panier tressé du marché',
+    sellerId: currentUser.id,
+    sellerName: currentUser.name,
+    buyerId: 'fara',
+    buyerName: 'Fara N.',
+    price: 52000,
+    status: 'pending',
+    createdAt: daysAgo(2),
+    completedAt: null,
+    rating: null,
+  },
+  {
+    id: 'cmd-demo-3',
+    productId: 'panier-mialy',
+    productName: 'Panier tressé du marché',
+    sellerId: currentUser.id,
+    sellerName: currentUser.name,
+    buyerId: 'miora',
+    buyerName: 'Miora T.',
+    price: 25000,
+    status: 'completed',
+    createdAt: daysAgo(9),
+    completedAt: daysAgo(6),
+    rating: { stars: 5, comment: 'Très soigné et livré rapidement, merci !', createdAt: daysAgo(5) },
+  },
+  {
+    id: 'cmd-demo-4',
+    productId: 'panier-mialy',
+    productName: 'Panier tressé du marché',
+    sellerId: currentUser.id,
+    sellerName: currentUser.name,
+    buyerId: 'nina',
+    buyerName: 'Nina H.',
+    price: 48000,
+    status: 'completed',
+    createdAt: daysAgo(15),
+    completedAt: daysAgo(12),
+    rating: { stars: 4, comment: 'Conforme à la description.', createdAt: daysAgo(11) },
+  },
+]
