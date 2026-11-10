@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import HomePage from './pages/HomePage.jsx'
 import AuthPage from './pages/AuthPage.jsx'
+import VideosPage from './pages/VideosPage.jsx'
 import './App.css'
 import './pages/AuthPage.css'
 
@@ -27,10 +28,12 @@ export default function App() {
   }
 
   const authMode = path === '/connexion' ? 'login' : path === '/inscription' ? 'signup' : null
+  const isVideosPage = path === '/videos'
 
   return (
     <>
-      <div hidden={Boolean(authMode)}><HomePage navigate={navigate} /></div>
+      <div hidden={Boolean(authMode) || isVideosPage}><HomePage navigate={navigate} path={path} /></div>
+      {isVideosPage && <VideosPage navigate={navigate} path={path} />}
       {authMode && <AuthPage key={authMode} mode={authMode} navigate={navigate} />}
     </>
   )

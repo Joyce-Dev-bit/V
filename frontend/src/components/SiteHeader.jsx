@@ -1,7 +1,9 @@
 import { Avatar, Icon } from './common.jsx'
 import { currentUser } from '../data/demoData.js'
 
-export default function SiteHeader({ handleNavigation, searchRef, query, setQuery, navigate }) {
+export default function SiteHeader({ handleNavigation, searchRef, query, setQuery, navigate, activePath = '/' }) {
+  const isVideosPage = activePath === '/videos'
+
   return (
     <header className="top-header">
       <div className="top-header-main">
@@ -30,7 +32,8 @@ export default function SiteHeader({ handleNavigation, searchRef, query, setQuer
         </div>
       </div>
       <nav className="desktop-nav" aria-label="Navigation principale">
-        <button className="is-current" type="button" onClick={() => handleNavigation('home')}><Icon name="home" size={18} /> Accueil</button>
+        <button className={isVideosPage ? '' : 'is-current'} type="button" onClick={(event) => (isVideosPage ? navigate(event, '/') : handleNavigation('home'))}><Icon name="home" size={18} /> Accueil</button>
+        <button className={isVideosPage ? 'is-current' : ''} type="button" onClick={(event) => navigate(event, '/videos')}><Icon name="play" size={18} /> Vidéos</button>
         <button type="button" onClick={() => handleNavigation('search')}><Icon name="search" size={18} /> Recherche</button>
         <button type="button" onClick={() => handleNavigation('create')}><Icon name="plus" size={18} /> Publier</button>
         <button type="button" onClick={() => handleNavigation('messages')}><Icon name="message" size={18} /> Messages</button>

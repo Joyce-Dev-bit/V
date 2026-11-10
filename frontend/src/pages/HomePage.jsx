@@ -8,7 +8,7 @@ import MobileNavigation from '../components/MobileNavigation.jsx'
 import HomeModals from '../components/HomeModals.jsx'
 import MessagingWidget from '../MessagingWidget.jsx'
 
-export default function HomePage({ navigate }) {
+export default function HomePage({ navigate, path }) {
   const searchRef = useRef(null)
   const feedRef = useRef(null)
   const fileInputRef = useRef(null)
@@ -22,6 +22,7 @@ export default function HomePage({ navigate }) {
         query={state.query}
         setQuery={state.setQuery}
         navigate={navigate}
+        activePath={path}
       />
       <div className="feed-layout" ref={feedRef}>
         <LeftSidebar
@@ -62,7 +63,7 @@ export default function HomePage({ navigate }) {
           setFeedTab={state.setFeedTab}
         />
       </div>
-      <MobileNavigation handleNavigation={state.handleNavigation} />
+      <MobileNavigation handleNavigation={state.handleNavigation} navigate={navigate} activePath={path} />
       <MessagingWidget
         contacts={state.messageContacts}
         isOpen={state.messagingOpen}
