@@ -16,4 +16,6 @@ urlpatterns = [
     path('live/resolve', views.live_resolve),
     path('live/product', views.live_product),
     path('live/start', views.live_start),
+    path('live/obs', views.live_obs),
+    path('live/mediamtx-auth', views.live_mediamtx_auth),
 ]

@@ -11,11 +11,17 @@ export default defineConfig({
         target: 'http://localhost:8000',
         changeOrigin: true,
       },
-      // Flux camera du navigateur -> relais (relay/) -> Owncast.
-      '/live-ingest': {
-        target: 'ws://localhost:8090',
-        ws: true,
+      // MediaMTX : signalisation WebRTC (WHIP pour le vendeur, WHEP pour les acheteurs).
+      '/mediamtx': {
+        target: 'http://localhost:8889',
         changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/mediamtx/, ''),
+      },
+      // MediaMTX : lecture HLS de secours si le WebRTC ne passe pas.
+      '/live-hls': {
+        target: 'http://localhost:8888',
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/live-hls/, ''),
       },
     },
   },

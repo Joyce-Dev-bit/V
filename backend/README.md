@@ -26,31 +26,26 @@ Le port 8000 est celui attendu par le proxy Vite du frontend.
 - `DJANGO_SECRET_KEY` : obligatoire quand `DJANGO_DEBUG=0`.
 - `DJANGO_ALLOWED_HOSTS` : hôtes autorisés, séparés par des virgules.
 - `CORS_ALLOWED_ORIGINS` : origines autorisées, séparées par des virgules.
-- `OWNCAST_BASE_URL` : URL de ton serveur Owncast (défaut `http://127.0.0.1:8080`).
-- `OWNCAST_HLS_PATH` : chemin HLS lu par le frontend (défaut `/hls/stream.m3u8`).
-- `OWNCAST_ADMIN_PATH` : chemin du dashboard admin Owncast (défaut `/admin`).
-- `OWNCAST_RTMP_SERVER` : URL RTMP a configurer dans OBS/Streamlabs (défaut `rtmp://127.0.0.1/live`).
-- `OWNCAST_STREAM_KEY` : cle de stream a afficher dans la page live.
-- `LIVE_RELAY_SECRET` : secret partagé avec le relais pour signer les jetons de live.
+- `LIVE_TOKEN_SECRET` : secret de signature des jetons de live (caméra du navigateur).
+- `LIVE_OBS_KEY` : clé pour diffuser depuis OBS/Streamlabs en RTMP.
+- `LIVE_RTMP_HOST` : serveur RTMP affiché pour OBS (défaut `rtmp://127.0.0.1:1935`).
+- `MEDIAMTX_API_URL` : API interne de MediaMTX lue pour le statut (défaut `http://127.0.0.1:9997`).
+- `DJANGO_ALLOWED_HOSTS` doit contenir `host.docker.internal` (MediaMTX appelle le backend depuis Docker).
 
-## Live direct depuis l'appli
-
-Owncast et le relais caméra (`relay/`) tournent dans Docker :
+## Live direct depuis l'appli (MediaMTX)
 
 ```powershell
-docker compose up -d --build   # à la racine du dépôt
+docker compose up -d   # à la racine du dépôt
 ```
 
-- `backend/.env` et `relay/.env` doivent partager le même `LIVE_RELAY_SECRET`,
-  et `relay/.env` contient la clé de stream Owncast (`OWNCAST_STREAM_KEY`).
-- Sur la page Live, « Lancer le live » ouvre la caméra ; `POST /api/live/start` délivre un jeton
-  signé valable 5 min, le navigateur envoie la vidéo en WebSocket sur `/live-ingest` (proxy Vite → port 8090),
-  et le relais la pousse en RTMP vers Owncast via ffmpeg. Un seul live à la fois.
-- La caméra n'est accessible qu'en `https` ou sur `localhost` (pour un téléphone, il faut servir l'appli en https).
-- OBS/Streamlabs restent possibles (option avancée sur la page Live).
-- Faible latence (~2-3 s) : dans l'admin Owncast > Video, mettre la latence au minimum et la variante
-  en « passthrough » (le relais envoie déjà une image clé par seconde). Ces réglages sont stockés dans
-  le volume Docker `owncast-data` ; à refaire seulement si ce volume est supprimé.
+- « Lancer le live » ouvre la caméra ; `POST /api/live/start` délivre un jeton signé (5 min) et le
+  navigateur publie en WebRTC (WHIP) sur `/mediamtx/live/whip` (proxy Vite → MediaMTX :8889).
+- MediaMTX fait valider chaque action par `POST /api/live/mediamtx-auth` : lecture libre,
+  publication seulement avec un jeton valide ou la clé OBS. Un seul live à la fois.
+- Les acheteurs lisent en WebRTC (WHEP, < 1 s) ; si le WebRTC ne passe pas, bascule en HLS faible latence.
+- Pour les téléphones du réseau local, le fichier `.env` à la racine liste les IP annoncées
+  (`LIVE_PUBLIC_HOSTS=127.0.0.1,<IP du PC>`) ; la caméra exige https sauf sur localhost.
+- OBS/Streamlabs : serveur et clé affichés dans l'option avancée de la page Live.
 
 ## Limites connues
 

@@ -1,0 +1,45 @@
+# Configuration MediaMTX du live V (les options absentes gardent leur valeur par defaut).
+# - Le navigateur du vendeur publie sa camera en WebRTC (WHIP) sur le chemin "live".
+# - Les acheteurs lisent en WebRTC (WHEP, < 1 s) ou en HLS faible latence en secours.
+# - OBS/Streamlabs peuvent publier en RTMP.
+
+logLevel: info
+
+# Chaque action (publier, lire...) est validee par le backend Django.
+authMethod: http
+authHTTPAddress: http://host.docker.internal:8000/api/live/mediamtx-auth
+authHTTPExclude:
+  - action: api
+  - action: metrics
+  - action: pprof
+
+# API interne (statut, nombre de spectateurs) : exposee uniquement sur 127.0.0.1 (voir docker-compose).
+api: true
+apiAddress: :9997
+
+rtsp: false
+srt: false
+moq: false
+
+rtmp: true
+rtmpAddress: :1935
+
+hls: true
+hlsAddress: :8888
+hlsVariant: lowLatency
+hlsSegmentDuration: 1s
+hlsPartDuration: 200ms
+
+webrtc: true
+webrtcAddress: :8889
+webrtcLocalUDPAddress: :8189
+# ICE en TCP en secours (reseaux qui bloquent l'UDP).
+webrtcLocalTCPAddress: :8189
+# Dans Docker, les IP internes du conteneur sont injoignables : on annonce celles
+# de la machine hote (variable MTX_WEBRTCADDITIONALHOSTS dans docker-compose).
+webrtcIPsFromInterfaces: false
+
+paths:
+  live:
+    # Un seul vendeur a la fois : un second live est refuse au lieu d'ejecter le premier.
+    overridePublisher: false

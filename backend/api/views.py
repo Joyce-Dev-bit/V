@@ -284,14 +284,14 @@ def profile_follow(request, phone_number):
 
 @api_view('POST')
 def live_resolve(request):
-    from .live import owncast_live_payload
+    from .live import live_payload
 
     # On accepte un body vide pour simplifier l'appel frontend.
     if request.body:
         read_json(request)
 
     return JsonResponse(
-        {'status': 'ok', **owncast_live_payload(), 'featured_product': featured_product_payload()}
+        {'status': 'ok', **live_payload(), 'featured_product': featured_product_payload()}
     )
 
 
@@ -309,13 +309,34 @@ def non_negative_int(data, field):
 
 @api_view('POST')
 def live_start(request):
-    from .live import issue_live_token
+    from .live import WHIP_PATH, issue_live_token
 
     user = authenticated_user(request)
     issued = issue_live_token(user.phone_number)
     if issued is None:
-        raise ApiError(503, 'Relais live non configuré (LIVE_RELAY_SECRET manquant).')
-    return JsonResponse({'status': 'ok', 'ingest_path': '/live-ingest', **issued})
+        raise ApiError(503, 'Live non configuré (LIVE_TOKEN_SECRET manquant).')
+    return JsonResponse({'status': 'ok', 'whip_url': WHIP_PATH, **issued})
+
+
+@api_view('GET')
+def live_obs(request):
+    from .live import obs_settings
+
+    authenticated_user(request)
+    settings = obs_settings()
+    if settings is None:
+        raise ApiError(503, 'Diffusion OBS non configurée (LIVE_OBS_KEY manquant).')
+    return JsonResponse(settings)
+
+
+@api_view('POST')
+def live_mediamtx_auth(request):
+    """Appelé par MediaMTX (authentification HTTP) : 200 = autorisé, 401 = refusé."""
+    from .live import mediamtx_authorize
+
+    if mediamtx_authorize(read_json(request)):
+        return JsonResponse({'status': 'ok'})
+    return JsonResponse({'detail': 'Non autorisé.'}, status=401)
 
 
 @api_view('GET', 'PUT', 'DELETE')

@@ -1,30 +1,24 @@
-# Infrastructure live : Owncast (diffusion) + relais camera navigateur -> Owncast.
-# Lancement : docker compose up -d --build
+# Serveur live : MediaMTX (WebRTC < 1 s, HLS en secours, RTMP pour OBS).
+# Lancement : docker compose up -d
 name: v-live
 
 services:
-  owncast:
-    image: owncast/owncast:0.3.0
-    container_name: owncast
-    ports:
-      - "8080:8080"   # lecteur HLS + admin
-      - "1935:1935"   # RTMP (OBS/Streamlabs restent possibles)
+  mediamtx:
+    image: bluenviron/mediamtx:1.21.3
+    container_name: v-mediamtx
     volumes:
-      - owncast-data:/app/data
-    restart: unless-stopped
-
-  live-relay:
-    build: ./relay
-    container_name: v-live-relay
-    ports:
-      - "8090:8090"
-    env_file: ./relay/.env
+      - ./mediamtx/mediamtx.yml:/mediamtx.yml:ro
     environment:
-      OWNCAST_RTMP_URL: rtmp://owncast:1935/live
-    depends_on:
-      - owncast
+      # IP annoncees aux navigateurs pour le WebRTC. Ajouter l'IP LAN du PC
+      # (fichier .env a la racine : LIVE_PUBLIC_HOSTS=127.0.0.1,192.168.x.x) pour les telephones.
+      MTX_WEBRTCADDITIONALHOSTS: ${LIVE_PUBLIC_HOSTS:-127.0.0.1}
+    ports:
+      - "8889:8889"          # WebRTC (signalisation WHIP/WHEP)
+      - "8189:8189/udp"      # WebRTC media (UDP)
+      - "8189:8189/tcp"      # WebRTC media (TCP, secours)
+      - "8888:8888"          # HLS (secours)
+      - "1935:1935"          # RTMP (OBS/Streamlabs)
+      - "127.0.0.1:9997:9997" # API interne, lue par le backend
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     restart: unless-stopped
-
-volumes:
-  owncast-data:
-    name: owncast-data

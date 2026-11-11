@@ -4,12 +4,11 @@ import { Icon } from '../components/common.jsx'
 import { initialPosts, initialProducts } from '../data/demoData.js'
 import { createOrder } from '../data/ordersStore.js'
 import { formatPrice } from '../utils/formatPrice.js'
+import { playWhep, publishWhip } from '../utils/webrtcLive.js'
 
 // Même compte de démonstration que la page vidéos (en attendant une vraie authentification).
 const DEMO_PHONE_NUMBER = '+261341234567'
-const POLL_INTERVAL_MS = 8000
-const RECORDER_TIMESLICE_MS = 250
-const RECORDER_MIME_TYPES = ['video/webm;codecs=vp8,opus', 'video/webm;codecs=vp8', 'video/webm', 'video/mp4']
+const POLL_INTERVAL_MS = 4000
 
 function productImage(productId) {
   return initialPosts.find((post) => post.productId === productId && post.mediaType === 'image')?.media ?? ''
@@ -26,7 +25,7 @@ async function openCamera() {
   if (!navigator.mediaDevices?.getUserMedia) {
     throw new Error('Caméra indisponible : ouvre l’appli en https ou sur localhost.')
   }
-  const video = { width: { ideal: 1280 }, height: { ideal: 720 }, facingMode: 'user' }
+  const video = { width: { ideal: 1280 }, height: { ideal: 720 }, frameRate: { ideal: 30 }, facingMode: 'user' }
   try {
     return await navigator.mediaDevices.getUserMedia({ video, audio: true })
   } catch (error) {
@@ -34,12 +33,6 @@ async function openCamera() {
     // Pas de micro disponible : on diffuse au moins la vidéo.
     return navigator.mediaDevices.getUserMedia({ video, audio: false })
   }
-}
-
-function relayCloseMessage(code) {
-  if (code === 4409) return 'Un autre live est déjà en cours.'
-  if (code === 1011) return 'Le relais a interrompu la diffusion (Owncast injoignable ?).'
-  return 'Connexion au relais live perdue.'
 }
 
 export default function LivePage({ navigate }) {
@@ -53,11 +46,14 @@ export default function LivePage({ navigate }) {
   const [lastOrder, setLastOrder] = useState(null)
   const [broadcast, setBroadcast] = useState('idle') // idle | starting | live
   const [broadcastError, setBroadcastError] = useState('')
+  const [playback, setPlayback] = useState('') // '' | webrtc | hls
+  const [obs, setObs] = useState(null)
   const videoRef = useRef(null)
   const previewRef = useRef(null)
   const sessionRef = useRef(null)
+  const refreshRef = useRef(() => {})
 
-  // Configuration Owncast + statut + produit en vente, rafraîchis régulièrement.
+  // Configuration + statut MediaMTX + produit en vente, rafraîchis régulièrement.
   useEffect(() => {
     let cancelled = false
 
@@ -72,12 +68,13 @@ export default function LivePage({ navigate }) {
         setStream(payload)
         setFeatured(payload.featured_product ?? null)
       } catch (requestError) {
-        if (!cancelled) setError(requestError?.message || 'Impossible de charger Owncast.')
+        if (!cancelled) setError(requestError?.message || 'Impossible de joindre le serveur live.')
       } finally {
         if (!cancelled) setLoading(false)
       }
     }
 
+    refreshRef.current = refresh
     refresh()
     const timer = window.setInterval(refresh, POLL_INTERVAL_MS)
     return () => {
@@ -86,53 +83,79 @@ export default function LivePage({ navigate }) {
     }
   }, [])
 
-  const playbackUrl = stream?.playback_url
+  const whepUrl = stream?.whep_url
+  const hlsUrl = stream?.hls_url
   const isOnline = Boolean(stream?.online)
 
-  // (Re)branche le lecteur HLS quand le flux passe en ligne.
+  // Lecteur acheteur : WebRTC (< 1 s) en priorité, HLS faible latence en secours.
   useEffect(() => {
     const video = videoRef.current
-    if (!video || !playbackUrl || !isOnline) return undefined
+    if (!video || !whepUrl || !isOnline) return undefined
 
-    if (video.canPlayType('application/vnd.apple.mpegurl')) {
-      video.src = playbackUrl
-      video.play().catch(() => {})
-      return () => video.removeAttribute('src')
+    let cancelled = false
+    let pc = null
+    let hls = null
+
+    function startHls() {
+      if (cancelled || !hlsUrl) return
+      video.srcObject = null
+      setPlayback('hls')
+      if (video.canPlayType('application/vnd.apple.mpegurl')) {
+        video.src = hlsUrl
+        video.play().catch(() => {})
+        return
+      }
+      if (!Hls.isSupported()) {
+        setError('Ce navigateur ne supporte ni WebRTC ni HLS.')
+        return
+      }
+      hls = new Hls({ lowLatencyMode: true, backBufferLength: 10, maxLiveSyncPlaybackRate: 1.5 })
+      hls.loadSource(hlsUrl)
+      hls.attachMedia(video)
+      hls.on(Hls.Events.MANIFEST_PARSED, () => video.play().catch(() => {}))
+      hls.on(Hls.Events.ERROR, (_, data) => {
+        if (data?.fatal) setError('Lecture live indisponible pour le moment.')
+      })
     }
 
-    if (!Hls.isSupported()) {
-      setError('Ce navigateur ne supporte pas la lecture HLS.')
-      return undefined
-    }
-
-    // Segments de 1 s côté Owncast : on reste à ~2 segments du direct et on accélère
-    // légèrement la lecture pour rattraper si le lecteur prend du retard.
-    const hls = new Hls({
-      lowLatencyMode: true,
-      backBufferLength: 10,
-      liveSyncDurationCount: 2,
-      liveMaxLatencyDurationCount: 5,
-      maxLiveSyncPlaybackRate: 1.5,
-    })
-    hls.loadSource(playbackUrl)
-    hls.attachMedia(video)
-    hls.on(Hls.Events.MANIFEST_PARSED, () => {
-      setError('')
+    playWhep(whepUrl, (mediaStream) => {
+      if (cancelled) return
+      video.srcObject = mediaStream
       video.play().catch(() => {})
     })
-    hls.on(Hls.Events.ERROR, (_, data) => {
-      if (data?.fatal) setError("Lecture live indisponible pour le moment. Vérifie qu'Owncast est en direct.")
-    })
-    return () => hls.destroy()
-  }, [playbackUrl, isOnline])
+      .then((connection) => {
+        if (cancelled) {
+          connection.close()
+          return
+        }
+        pc = connection
+        setError('')
+        setPlayback('webrtc')
+        pc.addEventListener('connectionstatechange', () => {
+          if (pc.connectionState === 'failed' && !cancelled) {
+            pc.close()
+            startHls()
+          }
+        })
+      })
+      .catch(startHls)
+
+    return () => {
+      cancelled = true
+      pc?.close()
+      hls?.destroy()
+      video.srcObject = null
+      video.removeAttribute('src')
+      setPlayback('')
+    }
+  }, [whepUrl, hlsUrl, isOnline])
 
   function teardown() {
     const session = sessionRef.current
     sessionRef.current = null
     if (!session) return
     session.stopping = true
-    if (session.recorder?.state === 'recording') session.recorder.stop()
-    if (session.socket && session.socket.readyState <= WebSocket.OPEN) session.socket.close(1000)
+    session.pc?.close()
     session.media?.getTracks().forEach((track) => track.stop())
     if (previewRef.current) previewRef.current.srcObject = null
   }
@@ -153,36 +176,28 @@ export default function LivePage({ navigate }) {
         previewRef.current.play().catch(() => {})
       }
 
-      const { token, ingest_path: ingestPath } = await fetchJson('/api/live/start', {
+      const { token, whip_url: whipUrl } = await fetchJson('/api/live/start', {
         method: 'POST',
         headers: { 'X-Phone-Number': DEMO_PHONE_NUMBER },
       })
-      const mimeType = RECORDER_MIME_TYPES.find((type) => window.MediaRecorder?.isTypeSupported(type))
-      if (!window.MediaRecorder || !mimeType) throw new Error('Ce navigateur ne sait pas enregistrer la caméra.')
-
-      const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:'
-      const socket = new WebSocket(`${protocol}//${window.location.host}${ingestPath}?token=${encodeURIComponent(token)}`)
-      session.socket = socket
-
-      await new Promise((resolve, reject) => {
-        socket.onopen = resolve
-        socket.onerror = () => reject(new Error('Relais live injoignable (docker compose up -d ?).'))
-      })
       if (session.stopping) return
 
-      const recorder = new MediaRecorder(session.media, { mimeType, videoBitsPerSecond: 2_500_000 })
-      session.recorder = recorder
-      recorder.ondataavailable = (event) => {
-        if (event.data.size > 0 && socket.readyState === WebSocket.OPEN) socket.send(event.data)
+      const pc = await publishWhip(whipUrl, session.media, token)
+      if (session.stopping) {
+        pc.close()
+        return
       }
-      socket.onclose = (event) => {
+      session.pc = pc
+      pc.addEventListener('connectionstatechange', () => {
         if (session.stopping) return
-        setBroadcastError(relayCloseMessage(event.code))
-        teardown()
-        setBroadcast('idle')
-      }
-      recorder.start(RECORDER_TIMESLICE_MS)
+        if (pc.connectionState === 'failed' || pc.connectionState === 'closed') {
+          setBroadcastError('Connexion au serveur live perdue.')
+          teardown()
+          setBroadcast('idle')
+        }
+      })
       setBroadcast('live')
+      window.setTimeout(() => refreshRef.current(), 800)
     } catch (startError) {
       if (sessionRef.current === session) {
         teardown()
@@ -195,6 +210,16 @@ export default function LivePage({ navigate }) {
   function stopLive() {
     teardown()
     setBroadcast('idle')
+    window.setTimeout(() => refreshRef.current(), 800)
+  }
+
+  async function loadObsSettings(event) {
+    if (!event.currentTarget.open || obs) return
+    try {
+      setObs(await fetchJson('/api/live/obs', { headers: { 'X-Phone-Number': DEMO_PHONE_NUMBER } }))
+    } catch (requestError) {
+      setObs({ error: requestError.message })
+    }
   }
 
   async function featureProduct() {
@@ -324,16 +349,14 @@ export default function LivePage({ navigate }) {
                   )}
                 </div>
 
-                <details className="live-advanced">
+                <details className="live-advanced" onToggle={loadObsSettings}>
                   <summary>Diffuser avec OBS / Streamlabs (option avancée)</summary>
                   <div className="live-form">
-                    <label htmlFor="live-rtmp">Serveur RTMP</label>
-                    <input id="live-rtmp" type="text" value={stream.rtmp_server || ''} readOnly />
+                    {obs?.error && <p className="live-error" role="alert">{obs.error}</p>}
+                    <label htmlFor="live-rtmp">Serveur</label>
+                    <input id="live-rtmp" type="text" value={obs?.rtmp_server ?? 'Chargement…'} readOnly />
                     <label htmlFor="live-key">Clé de stream</label>
-                    <input id="live-key" type="text" value={stream.stream_key || 'Configure OWNCAST_STREAM_KEY'} readOnly />
-                    <a className="live-secondary-btn" href={stream.admin_url} target="_blank" rel="noreferrer">
-                      Owncast Admin
-                    </a>
+                    <input id="live-key" type="text" value={obs?.stream_key ?? 'Chargement…'} readOnly />
                   </div>
                 </details>
 
@@ -348,7 +371,9 @@ export default function LivePage({ navigate }) {
                 <span className={`live-badge${isOnline ? ' is-on-air' : ''}`}>
                   <span className="live-dot" /> {isOnline ? 'EN DIRECT' : 'HORS LIGNE'}
                 </span>
-                <span className="live-player-quality">{stream.viewer_count ?? 0} spectateur(s)</span>
+                <span className="live-player-quality">
+                  {stream.viewer_count ?? 0} spectateur(s){playback && ` · ${playback === 'webrtc' ? 'temps réel' : 'HLS'}`}
+                </span>
               </div>
               <div className="live-player-stage">
                 <div className="live-player-frame">
@@ -356,7 +381,7 @@ export default function LivePage({ navigate }) {
                   {!isOnline && (
                     <p className="live-player-offline">
                       {broadcast === 'live'
-                        ? 'Ton live démarre… il apparaît ici après quelques secondes.'
+                        ? 'Ton live démarre…'
                         : 'Aucun live pour le moment.'}
                       {error && <><br />{error}</>}
                     </p>
@@ -382,7 +407,6 @@ export default function LivePage({ navigate }) {
                   )}
                 </div>
               </div>
-              <p className="live-player-source">{playbackUrl}</p>
             </section>
           </>
         )}

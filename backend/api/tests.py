@@ -128,18 +128,44 @@ class ApiTests(TestCase):
         self.assertEqual(self.call('delete', '/api/live/product').json(), {'featured_product': None})
         self.assertIsNone(self.call('get', '/api/live/product', phone=None).json()['featured_product'])
 
-    def test_live_start_issues_signed_token(self):
-        import hashlib
-        import hmac
+    def test_live_start_token_authorizes_mediamtx_publish_only(self):
         import os
         from unittest import mock
 
+        auth = '/api/live/mediamtx-auth'
         self.assertEqual(self.call('post', '/api/live/start', phone=None).status_code, 401)
-        with mock.patch.dict(os.environ, {'LIVE_RELAY_SECRET': ''}):
+        with mock.patch.dict(os.environ, {'LIVE_TOKEN_SECRET': ''}):
             self.assertEqual(self.call('post', '/api/live/start').status_code, 503)
-        with mock.patch.dict(os.environ, {'LIVE_RELAY_SECRET': 'secret-test'}):
+
+        with mock.patch.dict(os.environ, {'LIVE_TOKEN_SECRET': 'secret-test', 'LIVE_OBS_KEY': 'cle-obs'}):
             body = self.call('post', '/api/live/start').json()
-        encoded, signature = body['token'].split('.')
-        expected = hmac.new(b'secret-test', encoded.encode(), hashlib.sha256).hexdigest()
-        self.assertEqual(signature, expected)
-        self.assertEqual(body['ingest_path'], '/live-ingest')
+            token = body['token']
+            self.assertEqual(body['whip_url'], '/mediamtx/live/whip')
+
+            def allowed(payload):
+                return self.call('post', auth, payload, phone=None).status_code == 200
+
+            self.assertTrue(allowed({'action': 'read', 'path': 'live'}))
+            self.assertTrue(allowed({'action': 'publish', 'path': 'live', 'token': token}))
+            self.assertTrue(allowed({'action': 'publish', 'path': 'live', 'query': f'token={token}'}))
+            self.assertTrue(allowed({'action': 'publish', 'path': 'live', 'password': 'cle-obs'}))
+            self.assertFalse(allowed({'action': 'publish', 'path': 'live'}))
+            self.assertFalse(allowed({'action': 'publish', 'path': 'live', 'token': token[:-1] + 'x'}))
+            self.assertFalse(allowed({'action': 'publish', 'path': 'autre', 'token': token}))
+            self.assertFalse(allowed({'action': 'publish', 'path': 'live', 'password': 'mauvaise'}))
+            self.assertFalse(allowed({'action': 'api'}))
+            self.assertEqual(self.call('get', '/api/live/obs').json()['stream_key'], 'live?user=obs&pass=cle-obs')
+
+        with mock.patch.dict(os.environ, {'LIVE_TOKEN_SECRET': 'autre-secret'}):
+            self.assertFalse(allowed({'action': 'publish', 'path': 'live', 'token': token}))
+
+    def test_expired_live_token_is_rejected(self):
+        import os
+        from unittest import mock
+
+        from .live import issue_live_token, verify_live_token
+
+        with mock.patch.dict(os.environ, {'LIVE_TOKEN_SECRET': 'secret-test'}):
+            token = issue_live_token(PHONE, now=1_000)['token']
+            self.assertEqual(verify_live_token(token, now=1_100), PHONE)
+            self.assertIsNone(verify_live_token(token, now=1_000 + 301))
