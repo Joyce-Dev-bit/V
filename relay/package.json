@@ -1,0 +1,13 @@
+{
+  "name": "v-live-relay",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "description": "Relais camera du navigateur (WebSocket) vers Owncast (RTMP) via ffmpeg.",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "ws": "^8.18.0"
+  }
+}

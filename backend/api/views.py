@@ -4,7 +4,7 @@ from functools import wraps
 from django.db import IntegrityError, transaction
 from django.http import JsonResponse
 
-from .models import CommentLike, Follow, User, Video, VideoComment, VideoLike
+from .models import CommentLike, Follow, LiveFeaturedProduct, User, Video, VideoComment, VideoLike
 from .phone import ApiError, normalize_phone_number, normalize_phone_or_error
 from .serializers import comments_tree, video_page, video_payload, video_queryset
 
@@ -290,4 +290,61 @@ def live_resolve(request):
     if request.body:
         read_json(request)
 
-    return JsonResponse({'status': 'ok', **owncast_live_payload()})
+    return JsonResponse(
+        {'status': 'ok', **owncast_live_payload(), 'featured_product': featured_product_payload()}
+    )
+
+
+def featured_product_payload():
+    featured = LiveFeaturedProduct.objects.order_by('-updated_at').first()
+    return featured.as_payload() if featured else None
+
+
+def non_negative_int(data, field):
+    value = data.get(field)
+    if isinstance(value, bool) or not isinstance(value, int) or value < 0:
+        raise ApiError(422, f'Le champ {field} doit être un entier positif.')
+    return value
+
+
+@api_view('POST')
+def live_start(request):
+    from .live import issue_live_token
+
+    user = authenticated_user(request)
+    issued = issue_live_token(user.phone_number)
+    if issued is None:
+        raise ApiError(503, 'Relais live non configuré (LIVE_RELAY_SECRET manquant).')
+    return JsonResponse({'status': 'ok', 'ingest_path': '/live-ingest', **issued})
+
+
+@api_view('GET', 'PUT', 'DELETE')
+def live_product(request):
+    if request.method == 'GET':
+        return JsonResponse({'featured_product': featured_product_payload()})
+
+    user = authenticated_user(request)
+
+    if request.method == 'DELETE':
+        LiveFeaturedProduct.objects.all().delete()
+        return JsonResponse({'featured_product': None})
+
+    data = read_json(request)
+    image_url = data.get('image_url') or ''
+    if not isinstance(image_url, str) or (image_url and not image_url.startswith(('http://', 'https://'))):
+        raise ApiError(422, "Le champ image_url doit être une URL http(s).")
+
+    with transaction.atomic():
+        LiveFeaturedProduct.objects.all().delete()
+        featured = LiveFeaturedProduct.objects.create(
+            product_id=required_text(data, 'id', max_length=100),
+            name=required_text(data, 'name', max_length=200),
+            price=non_negative_int(data, 'price'),
+            currency=(data.get('currency') or 'Ar')[:10] if isinstance(data.get('currency'), str) else 'Ar',
+            stock=non_negative_int(data, 'stock'),
+            seller_id=str(data.get('sellerId') or '')[:100],
+            seller_name=str(data.get('sellerName') or '')[:200],
+            image_url=image_url[:500],
+            featured_by=user,
+        )
+    return JsonResponse({'featured_product': featured.as_payload()})

@@ -11,6 +11,12 @@ export default defineConfig({
         target: 'http://localhost:8000',
         changeOrigin: true,
       },
+      // Flux camera du navigateur -> relais (relay/) -> Owncast.
+      '/live-ingest': {
+        target: 'ws://localhost:8090',
+        ws: true,
+        changeOrigin: true,
+      },
     },
   },
   preview: {

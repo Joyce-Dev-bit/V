@@ -67,3 +67,32 @@ def owncast_live_payload():
     config = owncast_runtime_config()
     status = owncast_status(config['base_url'])
     return {**config, **status}
+
+
+# --- Live direct depuis le navigateur -------------------------------------
+# Le backend signe un jeton court (HMAC) que le relais (dossier relay/) verifie
+# avant d'accepter le flux camera. La cle de stream Owncast reste cote serveur.
+
+LIVE_TOKEN_TTL_SECONDS = 300
+
+
+def _relay_secret():
+    secret = os.environ.get('LIVE_RELAY_SECRET', '').strip()
+    return secret.encode('utf-8') if secret else None
+
+
+def issue_live_token(phone_number, now=None):
+    """Retourne un jeton `payload.signature` ou None si le relais n'est pas configure."""
+    import base64
+    import hashlib
+    import hmac
+    import time
+
+    secret = _relay_secret()
+    if secret is None:
+        return None
+    expires_at = int((now or time.time()) + LIVE_TOKEN_TTL_SECONDS)
+    payload = json.dumps({'sub': phone_number, 'exp': expires_at}, separators=(',', ':')).encode('utf-8')
+    encoded = base64.urlsafe_b64encode(payload).rstrip(b'=').decode('ascii')
+    signature = hmac.new(secret, encoded.encode('ascii'), hashlib.sha256).hexdigest()
+    return {'token': f'{encoded}.{signature}', 'expires_at': expires_at}

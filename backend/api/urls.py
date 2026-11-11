@@ -14,4 +14,6 @@ urlpatterns = [
     path('profiles/<str:phone_number>', views.profile_detail),
     path('profiles/<str:phone_number>/follow', views.profile_follow),
     path('live/resolve', views.live_resolve),
+    path('live/product', views.live_product),
+    path('live/start', views.live_start),
 ]

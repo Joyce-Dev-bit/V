@@ -1,0 +1,30 @@
+# Infrastructure live : Owncast (diffusion) + relais camera navigateur -> Owncast.
+# Lancement : docker compose up -d --build
+name: v-live
+
+services:
+  owncast:
+    image: owncast/owncast:0.3.0
+    container_name: owncast
+    ports:
+      - "8080:8080"   # lecteur HLS + admin
+      - "1935:1935"   # RTMP (OBS/Streamlabs restent possibles)
+    volumes:
+      - owncast-data:/app/data
+    restart: unless-stopped
+
+  live-relay:
+    build: ./relay
+    container_name: v-live-relay
+    ports:
+      - "8090:8090"
+    env_file: ./relay/.env
+    environment:
+      OWNCAST_RTMP_URL: rtmp://owncast:1935/live
+    depends_on:
+      - owncast
+    restart: unless-stopped
+
+volumes:
+  owncast-data:
+    name: owncast-data

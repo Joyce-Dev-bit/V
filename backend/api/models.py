@@ -73,3 +73,31 @@ class Follow(models.Model):
 
     class Meta:
         constraints = [models.UniqueConstraint(fields=['follower', 'following'], name='unique_follow')]
+
+
+class LiveFeaturedProduct(models.Model):
+    """Produit mis en avant pendant le live (une seule ligne : le live en cours)."""
+
+    product_id = models.CharField(max_length=100)
+    name = models.CharField(max_length=200)
+    price = models.PositiveIntegerField()
+    currency = models.CharField(max_length=10, default='Ar')
+    stock = models.PositiveIntegerField(default=0)
+    seller_id = models.CharField(max_length=100, blank=True)
+    seller_name = models.CharField(max_length=200, blank=True)
+    image_url = models.URLField(max_length=500, blank=True)
+    featured_by = models.ForeignKey(User, null=True, on_delete=models.SET_NULL, related_name='+')
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def as_payload(self):
+        return {
+            'id': self.product_id,
+            'name': self.name,
+            'price': self.price,
+            'currency': self.currency,
+            'stock': self.stock,
+            'sellerId': self.seller_id,
+            'sellerName': self.seller_name,
+            'image_url': self.image_url,
+            'updated_at': self.updated_at.isoformat(),
+        }

@@ -18,7 +18,7 @@ class CorsMiddleware:
             response['Access-Control-Allow-Origin'] = origin
             response['Vary'] = 'Origin'
             if is_preflight:
-                response['Access-Control-Allow-Methods'] = 'GET, POST, DELETE, OPTIONS'
+                response['Access-Control-Allow-Methods'] = 'GET, POST, PUT, DELETE, OPTIONS'
                 response['Access-Control-Allow-Headers'] = 'Content-Type, X-Phone-Number'
                 response['Access-Control-Max-Age'] = '600'
         return response

@@ -195,7 +195,128 @@
 }
 
 .live-action-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
   margin-top: 8px;
+}
+
+.live-start-btn,
+.live-secondary-btn {
+  padding: 0 18px;
+}
+
+.live-secondary-btn {
+  height: 48px;
+  margin-top: 8px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid #e0dcea;
+  border-radius: 12px;
+  background: #fff;
+  color: #34313c;
+  font-size: 0.8rem;
+  font-weight: 700;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.live-secondary-btn:hover:not(:disabled) {
+  background: #f2eff8;
+}
+
+.live-player-frame {
+  position: relative;
+  width: min(1100px, 100%);
+}
+
+.live-player-frame .live-player-video {
+  display: block;
+  width: 100%;
+  min-height: 240px;
+}
+
+.live-player-offline {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  margin: 0;
+  padding: 16px;
+  color: #b9b5c4;
+  font-size: 0.8rem;
+  text-align: center;
+  pointer-events: none;
+}
+
+.live-product-card {
+  position: absolute;
+  left: 14px;
+  bottom: 56px;
+  display: flex;
+  gap: 12px;
+  width: min(340px, calc(100% - 28px));
+  padding: 10px;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.96);
+  color: #24212b;
+  box-shadow: 0 14px 40px rgba(0, 0, 0, 0.35);
+}
+
+.live-product-card img {
+  width: 76px;
+  height: 76px;
+  flex: none;
+  border-radius: 10px;
+  object-fit: cover;
+}
+
+.live-product-info {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+}
+
+.live-product-info strong {
+  overflow: hidden;
+  font-size: 0.8rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.live-product-price {
+  color: #c1121f;
+  font-size: 0.95rem;
+  font-weight: 800;
+}
+
+.live-product-meta {
+  color: #77737f;
+  font-size: 0.64rem;
+}
+
+.live-product-info button {
+  height: 32px;
+  margin-top: 2px;
+  border: 0;
+  border-radius: 9px;
+  background: linear-gradient(120deg, #e63946, #c1121f);
+  color: #fff;
+  font-size: 0.75rem;
+  font-weight: 750;
+  cursor: pointer;
+}
+
+.live-product-info button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.live-product-done {
+  color: #1f7a4a;
+  font-size: 0.72rem;
+  font-weight: 700;
 }
 
 .live-hint {
@@ -275,4 +396,34 @@
   .live-player-video {
     max-height: calc(100dvh - 150px);
   }
+}
+
+.live-start-btn .live-dot {
+  margin-right: 8px;
+  background: #fff;
+}
+
+.live-stop-btn {
+  background: #24212b;
+}
+
+.live-camera-preview {
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  margin: 10px 0 4px;
+  border-radius: 12px;
+  background: #000;
+  object-fit: cover;
+  transform: scaleX(-1); /* effet miroir, comme une caméra frontale */
+}
+
+.live-advanced {
+  margin-top: 14px;
+  color: #55525e;
+  font-size: 0.72rem;
+}
+
+.live-advanced summary {
+  cursor: pointer;
+  font-weight: 700;
 }

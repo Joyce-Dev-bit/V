@@ -108,3 +108,38 @@ class ApiTests(TestCase):
         self.assertIn('X-Phone-Number', allowed['Access-Control-Allow-Headers'])
         denied = self.client.get('/api/health', HTTP_ORIGIN='https://evil.example')
         self.assertNotIn('Access-Control-Allow-Origin', denied)
+
+    def test_live_featured_product_lifecycle(self):
+        self.assertIsNone(self.call('get', '/api/live/product', phone=None).json()['featured_product'])
+        product = {
+            'id': 'sac-rafia-voa', 'name': 'Sac en raphia', 'price': 48000, 'stock': 3,
+            'sellerId': 'tiana-voa', 'sellerName': 'Atelier Voa',
+            'image_url': 'https://images.example.com/sac.jpg',
+        }
+        self.assertEqual(self.call('put', '/api/live/product', product, phone=None).status_code, 401)
+        self.assertEqual(self.call('put', '/api/live/product', {**product, 'price': -1}).status_code, 422)
+        self.assertEqual(
+            self.call('put', '/api/live/product', {**product, 'image_url': 'javascript:alert(1)'}).status_code, 422
+        )
+        featured = self.call('put', '/api/live/product', product).json()['featured_product']
+        self.assertEqual((featured['id'], featured['price']), ('sac-rafia-voa', 48000))
+        self.call('put', '/api/live/product', {**product, 'id': 'vase', 'name': 'Vase'})
+        self.assertEqual(self.call('get', '/api/live/product', phone=None).json()['featured_product']['id'], 'vase')
+        self.assertEqual(self.call('delete', '/api/live/product').json(), {'featured_product': None})
+        self.assertIsNone(self.call('get', '/api/live/product', phone=None).json()['featured_product'])
+
+    def test_live_start_issues_signed_token(self):
+        import hashlib
+        import hmac
+        import os
+        from unittest import mock
+
+        self.assertEqual(self.call('post', '/api/live/start', phone=None).status_code, 401)
+        with mock.patch.dict(os.environ, {'LIVE_RELAY_SECRET': ''}):
+            self.assertEqual(self.call('post', '/api/live/start').status_code, 503)
+        with mock.patch.dict(os.environ, {'LIVE_RELAY_SECRET': 'secret-test'}):
+            body = self.call('post', '/api/live/start').json()
+        encoded, signature = body['token'].split('.')
+        expected = hmac.new(b'secret-test', encoded.encode(), hashlib.sha256).hexdigest()
+        self.assertEqual(signature, expected)
+        self.assertEqual(body['ingest_path'], '/live-ingest')
