@@ -30,6 +30,7 @@ export default function VideosPage({ navigate, path }) {
           posts={state.posts}
           followedSellers={state.followedSellers}
           handleNavigation={state.handleNavigation}
+          navigate={navigate}
           feedTab={state.feedTab}
           setFeedTab={state.setFeedTab}
           activeCategory={state.activeCategory}
@@ -42,7 +43,7 @@ export default function VideosPage({ navigate, path }) {
             </div>
             <p>Retrouvez ici les vidéos récupérées depuis l'API backend.</p>
           </section>
-          <VideoInjection title="Vidéos backend" embedded mode="reels" />
+          <VideoInjection title="Vidéos backend" embedded mode="reels" autoOpen onBack={(event) => navigate(event, '/')} />
         </main>
         <RightSidebar
           setQuery={state.setQuery}

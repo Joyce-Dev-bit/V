@@ -30,7 +30,7 @@ const REAL_VIDEO_LIBRARY = [
   },
 ]
 
-export default function VideoInjection({ title = 'Vidéos backend', embedded = false, mode = 'grid' }) {
+export default function VideoInjection({ title = 'Vidéos backend', embedded = false, mode = 'grid', autoOpen = false, onBack = null }) {
   const [items, setItems] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
@@ -52,10 +52,17 @@ export default function VideoInjection({ title = 'Vidéos backend', embedded = f
   const feedRef = useRef(null)
 
   function closeViewer() {
+    if (autoOpen) return
     setViewerVideoId(null)
     setCommentPanelVideoId(null)
     setActiveVideoId(null)
   }
+
+  // Ouvre directement le lecteur plein écran dès que les vidéos sont chargées (expérience type TikTok).
+  useEffect(() => {
+    if (!autoOpen || mode !== 'reels' || !items.length || viewerVideoId !== null) return
+    setViewerVideoId(items[0].id)
+  }, [autoOpen, mode, items, viewerVideoId])
 
   useEffect(() => {
     if (viewerVideoId === null) return undefined
@@ -72,7 +79,7 @@ export default function VideoInjection({ title = 'Vidéos backend', embedded = f
     if (viewerVideoId === null || commentPanelVideoId) return undefined
 
     function handleKey(event) {
-      if (event.key === 'Escape') closeViewer()
+      if (event.key === 'Escape' && !autoOpen) closeViewer()
       const step = event.key === 'ArrowDown' ? 1 : event.key === 'ArrowUp' ? -1 : 0
       if (step) {
         event.preventDefault()
@@ -83,7 +90,7 @@ export default function VideoInjection({ title = 'Vidéos backend', embedded = f
 
     document.addEventListener('keydown', handleKey)
     return () => document.removeEventListener('keydown', handleKey)
-  }, [viewerVideoId, commentPanelVideoId])
+  }, [viewerVideoId, commentPanelVideoId, autoOpen])
 
   const apiBases = useMemo(() => {
     if (!apiBase) return API_CANDIDATES
@@ -499,7 +506,7 @@ export default function VideoInjection({ title = 'Vidéos backend', embedded = f
 
       {mode === 'reels' ? (
         <>
-        {!loading && items.length > 0 && (
+        {!autoOpen && !loading && items.length > 0 && (
           <div className="video-reels-grid" aria-label="Choisir une vidéo">
             {items.map((v) => (
               <button
@@ -521,10 +528,17 @@ export default function VideoInjection({ title = 'Vidéos backend', embedded = f
           </div>
         )}
         {viewerVideoId !== null && (
-        <div className="reels-viewer" role="dialog" aria-modal="true" aria-label="Lecteur vidéo plein écran">
+        <div className={`reels-viewer${autoOpen ? ' is-inline' : ''}`} role="dialog" aria-modal="true" aria-label="Lecteur vidéo plein écran">
+          {!autoOpen && (
           <button type="button" className="reels-viewer-close" onClick={closeViewer} aria-label="Fermer le lecteur vidéo">
             <Icon name="close" size={22} />
           </button>
+          )}
+          {autoOpen && onBack && (
+          <button type="button" className="reels-viewer-close" onClick={onBack} aria-label="Retour à l'accueil">
+            <Icon name="arrowLeft" size={22} />
+          </button>
+          )}
         <div className="video-reels-feed" aria-label="Flux vertical de vidéos" ref={feedRef}>
           {items.map((v) => (
             <article key={v.id} className="video-reel-card" data-video-id={v.id} id={`video-${v.id}`}>

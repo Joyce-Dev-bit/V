@@ -26,6 +26,11 @@ Le port 8000 est celui attendu par le proxy Vite du frontend.
 - `DJANGO_SECRET_KEY` : obligatoire quand `DJANGO_DEBUG=0`.
 - `DJANGO_ALLOWED_HOSTS` : hôtes autorisés, séparés par des virgules.
 - `CORS_ALLOWED_ORIGINS` : origines autorisées, séparées par des virgules.
+- `OWNCAST_BASE_URL` : URL de ton serveur Owncast (défaut `http://127.0.0.1:8080`).
+- `OWNCAST_HLS_PATH` : chemin HLS lu par le frontend (défaut `/hls/stream.m3u8`).
+- `OWNCAST_ADMIN_PATH` : chemin du dashboard admin Owncast (défaut `/admin`).
+- `OWNCAST_RTMP_SERVER` : URL RTMP a configurer dans OBS/Streamlabs (défaut `rtmp://127.0.0.1/live`).
+- `OWNCAST_STREAM_KEY` : cle de stream a afficher dans la page live.
 
 ## Limites connues
 

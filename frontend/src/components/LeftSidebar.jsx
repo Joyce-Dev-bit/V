@@ -1,7 +1,7 @@
 import { Avatar, Icon } from './common.jsx'
 import { categories, currentUser } from '../data/demoData.js'
 
-export default function LeftSidebar({ posts, followedSellers, handleNavigation, feedTab, setFeedTab, activeCategory, setActiveCategory }) {
+export default function LeftSidebar({ posts, followedSellers, handleNavigation, navigate, feedTab, setFeedTab, activeCategory, setActiveCategory }) {
   return (
     <aside className="left-sidebar">
       <section className="sidebar-profile">
@@ -19,6 +19,7 @@ export default function LeftSidebar({ posts, followedSellers, handleNavigation, 
         <button className={feedTab === 'following' ? 'is-selected' : ''} type="button" onClick={() => setFeedTab('following')}><Icon name="heart" size={18} /> Abonnements</button>
         <button type="button" onClick={() => handleNavigation('messages')}><Icon name="message" size={18} /> Messages</button>
         <button type="button" onClick={() => handleNavigation('purchases')}><Icon name="bag" size={18} /> Mes achats</button>
+        <button className="sidebar-live-btn" type="button" onClick={(event) => navigate(event, '/live')}><span className="live-dot" /> Lancer un live</button>
       </nav>
 
       <section className="category-sidebar">

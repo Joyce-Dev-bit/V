@@ -13,4 +13,5 @@ urlpatterns = [
     path('comments/<int:comment_id>/like', views.comment_like),
     path('profiles/<str:phone_number>', views.profile_detail),
     path('profiles/<str:phone_number>/follow', views.profile_follow),
+    path('live/resolve', views.live_resolve),
 ]

@@ -30,6 +30,7 @@ export default function HomePage({ navigate, path }) {
           posts={state.posts}
           followedSellers={state.followedSellers}
           handleNavigation={state.handleNavigation}
+          navigate={navigate}
           feedTab={state.feedTab}
           setFeedTab={state.setFeedTab}
           activeCategory={state.activeCategory}

@@ -20,6 +20,7 @@ export function Icon({ name, size = 20, filled = false }) {
     star: <path d="m12 3.5 2.6 5.3 5.9.9-4.3 4.1 1 5.8-5.2-2.8-5.2 2.8 1-5.8-4.3-4.1 5.9-.9L12 3.5Z" />,
     chart: <><path d="M4 20V4" /><path d="M4 20h16" /><path d="M8 16v-4m4 4V8m4 8v-6" /></>,
     sparkles: <><path d="m12 3 1.7 5.3L19 10l-5.3 1.7L12 17l-1.7-5.3L5 10l5.3-1.7L12 3Z" /><path d="m19 14 .9 2.1L22 17l-2.1.9L19 20l-.9-2.1L16 17l2.1-.9L19 14ZM5 3l.7 1.6L7 5l-1.3.4L5 7l-.7-1.6L3 5l1.3-.4L5 3Z" /></>,
+    arrowLeft: <><path d="M19 12H5" /><path d="m11 18-6-6 6-6" /></>,
   }
 
   return (

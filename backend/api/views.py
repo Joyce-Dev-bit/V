@@ -280,3 +280,14 @@ def profile_follow(request, phone_number):
             'followers_count': Follow.objects.filter(following__phone_number=target_phone).count(),
         }
     )
+
+
+@api_view('POST')
+def live_resolve(request):
+    from .live import owncast_live_payload
+
+    # On accepte un body vide pour simplifier l'appel frontend.
+    if request.body:
+        read_json(request)
+
+    return JsonResponse({'status': 'ok', **owncast_live_payload()})

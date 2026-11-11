@@ -4,6 +4,23 @@ from pathlib import Path
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 
+def load_dotenv(env_path):
+    if not env_path.exists():
+        return
+    for line in env_path.read_text(encoding='utf-8').splitlines():
+        item = line.strip()
+        if not item or item.startswith('#') or '=' not in item:
+            continue
+        key, value = item.split('=', 1)
+        key = key.strip()
+        value = value.strip().strip('"').strip("'")
+        if key and key not in os.environ:
+            os.environ[key] = value
+
+
+load_dotenv(BASE_DIR / '.env')
+
+
 def env_list(name, default):
     value = os.environ.get(name)
     return [item.strip() for item in value.split(',') if item.strip()] if value else default

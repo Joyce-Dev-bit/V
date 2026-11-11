@@ -431,6 +431,25 @@
   color: var(--violet-dark);
 }
 
+.sidebar-live-btn {
+  color: #e63946 !important;
+  font-weight: 750 !important;
+}
+
+.sidebar-live-btn:hover {
+  background: #fdecec !important;
+  color: #c1121f !important;
+}
+
+.sidebar-live-btn .live-dot {
+  width: 9px;
+  height: 9px;
+  flex: 0 0 auto;
+  border-radius: 50%;
+  background: #e63946;
+  animation: live-pulse 1.4s ease-in-out infinite;
+}
+
 .category-sidebar {
   padding-top: 12px;
   padding-bottom: 12px;
